@@ -75,11 +75,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUIStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { useRouter } from 'vue-router'
 import { Menu as MenuIcon, Search as SearchIcon, Sun as SunIcon, Moon as MoonIcon, Edit3 as Edit3Icon, LogOut as LogOutIcon, X as XIcon } from 'lucide-vue-next'
 import Fuse from 'fuse.js'
 import { onClickOutside } from '@vueuse/core'
@@ -93,7 +93,7 @@ const router = useRouter()
 const searchQuery = ref('')
 const isSearchOpen = ref(false)
 const searchResults = ref<any[]>([])
-const searchContainer = ref(null)
+const searchContainer = ref<HTMLElement | null>(null)
 
 // Initialize Fuse.js
 let fuse: Fuse<any> | null = null
@@ -102,7 +102,7 @@ let fuse: Fuse<any> | null = null
 watch(() => workspaceStore.allWorkspaceTools, (newTools) => {
   fuse = new Fuse(newTools, {
     keys: ['name', 'url', 'tags'],
-    threshold: 0.3, // 0.0 requires exact match, 1.0 matches anything
+    threshold: 0.3,
     includeScore: true
   })
 }, { deep: true, immediate: true })
@@ -113,7 +113,7 @@ watch(searchQuery, (query) => {
     searchResults.value = []
     return
   }
-  searchResults.value = fuse.search(query).slice(0, 8) // Limit to top 8 results
+  searchResults.value = fuse.search(query).slice(0, 8)
 })
 
 // Close dropdown if clicked outside

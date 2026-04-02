@@ -12,7 +12,7 @@
         
         <div class="flex items-center gap-6">
           <div class="relative group">
-            <div class="relative w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden shadow-sm cursor-pointer" @click="$refs.avatarInput.click()">
+            <div class="relative w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden shadow-sm cursor-pointer" @click="triggerAvatarInput">
               <img v-if="authStore.user?.user_metadata?.avatar_url" :src="authStore.user.user_metadata.avatar_url" class="w-full h-full object-cover" />
               <div v-else class="text-gray-500 font-bold text-2xl">{{ authStore.user?.email?.charAt(0).toUpperCase() }}</div>
               <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -40,7 +40,7 @@
           <div class="flex flex-col items-start gap-4">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Brand Icon (Favicon / Square)</h3>
             <div class="relative group">
-              <div class="relative w-32 h-32 rounded-2xl bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center overflow-hidden cursor-pointer" @click="$refs.fileInput.click()">
+              <div class="relative w-32 h-32 rounded-2xl bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center overflow-hidden cursor-pointer" @click="triggerFileInput">
                 <img v-if="workspaceStore.currentWorkspace?.logo_url" :src="workspaceStore.currentWorkspace.logo_url" class="w-full h-full object-cover" />
                 <ImageIcon v-else class="w-10 h-10 text-gray-400" />
                 <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span class="text-white text-xs font-bold uppercase tracking-wider">Change</span></div>
@@ -55,7 +55,7 @@
           <div class="flex flex-col items-start gap-4">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Text Logo / Wordmark</h3>
             <div class="relative group">
-              <div class="relative w-full min-w-[200px] h-32 rounded-2xl bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center overflow-hidden p-4 cursor-pointer" @click="$refs.wordmarkInput.click()">
+              <div class="relative w-full min-w-[200px] h-32 rounded-2xl bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center overflow-hidden p-4 cursor-pointer" @click="triggerWordmarkInput">
                 <img v-if="workspaceStore.currentWorkspace?.wordmark_url" :src="workspaceStore.currentWorkspace.wordmark_url" class="w-full h-full object-contain" />
                 <div v-else class="text-gray-400 font-bold text-xl">{{ workspaceStore.currentWorkspace?.name || 'Wordmark' }}</div>
                 <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span class="text-white text-xs font-bold uppercase tracking-wider">Change</span></div>
@@ -93,7 +93,7 @@
             <h3 class="font-semibold text-gray-900 dark:text-white mb-1">Import Data</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 flex-1">Restore your dashboard from a backup.</p>
             <input type="file" ref="importInput" @change="handleImportUpload" accept=".json" class="hidden" />
-            <button @click="$refs.importInput.click()" class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm">Import JSON Backup</button>
+            <button @click="triggerImportInput" class="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm">Import JSON Backup</button>
           </div>
         </div>
       </section>
@@ -118,6 +118,12 @@ const wordmarkInput = ref<HTMLInputElement | null>(null)
 const avatarInput = ref<HTMLInputElement | null>(null)
 const importInput = ref<HTMLInputElement | null>(null)
 const workspaceNameInput = ref('')
+
+// 🌟 NEW: Safe trigger functions to resolve TS18046 refs error
+const triggerAvatarInput = () => { if (avatarInput.value) avatarInput.value.click() }
+const triggerFileInput = () => { if (fileInput.value) fileInput.value.click() }
+const triggerWordmarkInput = () => { if (wordmarkInput.value) wordmarkInput.value.click() }
+const triggerImportInput = () => { if (importInput.value) importInput.value.click() }
 
 watch(() => workspaceStore.currentWorkspace, (newWs) => {
   if (newWs) workspaceNameInput.value = newWs.name
