@@ -1,134 +1,95 @@
 <template>
-  <header class="h-16 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-4 lg:px-8 transition-colors">
-    
-    <div class="flex items-center gap-4 flex-1">
-      <button @click="uiStore.toggleSidebar" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
-        <MenuIcon class="w-5 h-5" />
-      </button>
-      
+  <header class="h-14 lg:h-16 border-b border-gray-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-3 lg:px-8 safe-top shrink-0">
+
+    <!-- Mobile search overlay -->
+    <div v-if="mobileSearch" class="absolute inset-0 z-30 bg-white dark:bg-gray-900 flex items-center px-3 gap-2 md:hidden">
+      <SearchIcon class="w-5 h-5 text-gray-400 shrink-0" />
+      <input ref="mobileInput" v-model="query" type="search" placeholder="Search tools…" class="flex-1 bg-transparent outline-none py-2" @keydown.esc="closeMobileSearch" />
+      <button @click="closeMobileSearch" class="p-2 text-gray-500" aria-label="Close search"><XIcon class="w-5 h-5" /></button>
+    </div>
+
+    <div class="flex items-center gap-2 flex-1 min-w-0">
+      <h1 class="md:hidden font-bold truncate text-base">{{ pageTitle }}</h1>
+
       <div class="hidden md:block relative w-full max-w-md" ref="searchContainer">
         <div class="relative flex items-center">
           <SearchIcon class="w-4 h-4 absolute left-3 text-gray-400" />
-          <input 
-            type="text" 
-            v-model="searchQuery"
-            @focus="isSearchOpen = true"
-            placeholder="Search tools, tags, or URLs..." 
-            class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border-transparent focus:bg-white dark:focus:bg-gray-900 border focus:border-blue-500 rounded-lg text-sm outline-none transition-all"
-          />
-          <button v-if="searchQuery" @click="clearSearch" class="absolute right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-            <XIcon class="w-4 h-4" />
-          </button>
-        </div>
-
-        <div 
-          v-if="isSearchOpen && searchQuery.trim() !== ''" 
-          class="absolute top-full mt-2 left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden z-50 max-h-96 overflow-y-auto"
-        >
-          <div v-if="searchResults.length === 0" class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            No tools found for "{{ searchQuery }}"
-          </div>
-          
-          <div v-else class="py-2">
-            <p class="px-4 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Results</p>
-            <a 
-              v-for="result in searchResults" 
-              :key="result.item.id" 
-              :href="result.item.url" 
-              target="_blank"
-              class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              @click="isSearchOpen = false"
-            >
-              <img :src="result.item.logo_url" class="w-6 h-6 rounded bg-gray-100 dark:bg-gray-900 object-cover" />
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ result.item.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ result.item.url }}</p>
-              </div>
-            </a>
-          </div>
+          <input ref="deskInput" type="text" v-model="query" @focus="open = true" placeholder="Search tools, tags…  ( / )" class="w-full pl-10 pr-9 py-2 bg-gray-100 dark:bg-gray-800 border border-transparent focus:bg-white dark:focus:bg-gray-900 focus:border-blue-500 rounded-lg text-sm outline-none" />
+          <button v-if="query" @click="clearSearch" class="absolute right-3 text-gray-400" aria-label="Clear"><XIcon class="w-4 h-4" /></button>
         </div>
       </div>
     </div>
 
-    <div class="flex items-center gap-2 lg:gap-4 ml-4">
-      <button 
-        @click="uiStore.toggleEditMode" 
-        class="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all border"
-        :class="uiStore.isEditMode ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400' : 'bg-transparent border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'"
-      >
+    <!-- Results (shared by desktop dropdown and mobile sheet) -->
+    <div v-if="(open || mobileSearch) && query.trim()" class="fixed md:absolute md:top-14 md:left-8 md:w-[28rem] inset-x-0 top-14 md:inset-x-auto bg-white dark:bg-gray-800 border-y md:border md:rounded-xl border-gray-200 dark:border-gray-700 shadow-xl z-40 max-h-[70dvh] overflow-y-auto">
+      <p v-if="!results.length" class="p-4 text-center text-sm text-gray-500">No tools found for "{{ query }}"</p>
+      <a v-for="r in results" :key="r.item.id" :href="r.item.url" target="_blank" rel="noopener noreferrer" @click="openResult(r.item)"
+        class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+        <img :src="r.item.logo_url || ''" class="w-8 h-8 rounded bg-gray-100 dark:bg-gray-900 object-cover" alt="" />
+        <div class="min-w-0">
+          <p class="text-sm font-semibold truncate">{{ r.item.name }}</p>
+          <p class="text-xs text-gray-500 truncate">{{ extractDomain(r.item.url) }}</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="flex items-center gap-1 lg:gap-3 ml-2">
+      <button @click="openMobileSearch" class="md:hidden p-2.5 rounded-lg text-gray-500 dark:text-gray-400" aria-label="Search"><SearchIcon class="w-5 h-5" /></button>
+
+      <button @click="ui.toggleEditMode" class="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold border transition-all"
+        :class="ui.isEditMode ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700'">
         <Edit3Icon class="w-4 h-4" />
-        <span class="hidden sm:inline">{{ uiStore.isEditMode ? 'Editing Enabled' : 'Edit Mode' }}</span>
+        <span>{{ ui.isEditMode ? 'Done' : 'Edit' }}</span>
       </button>
 
-      <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
-
-      <button @click="uiStore.toggleDark()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors">
-        <SunIcon v-if="uiStore.isDark" class="w-5 h-5" />
-        <MoonIcon v-else class="w-5 h-5" />
+      <button @click="ui.toggleDark()" class="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400" aria-label="Toggle theme">
+        <SunIcon v-if="ui.isDark" class="w-5 h-5" /><MoonIcon v-else class="w-5 h-5" />
       </button>
 
-      <button @click="handleLogout" class="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors" title="Log Out">
-        <LogOutIcon class="w-5 h-5" />
-      </button>
+      <button @click="handleLogout" class="hidden sm:block p-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600" title="Log out" aria-label="Log out"><LogOutIcon class="w-5 h-5" /></button>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Search as SearchIcon, Sun as SunIcon, Moon as MoonIcon, Edit3 as Edit3Icon, LogOut as LogOutIcon, X as XIcon } from 'lucide-vue-next'
+import Fuse from 'fuse.js'
+import { onClickOutside } from '@vueuse/core'
 import { useUIStore } from '../../stores/ui'
 import { useAuthStore } from '../../stores/auth'
 import { useWorkspaceStore } from '../../stores/workspace'
-import { Menu as MenuIcon, Search as SearchIcon, Sun as SunIcon, Moon as MoonIcon, Edit3 as Edit3Icon, LogOut as LogOutIcon, X as XIcon } from 'lucide-vue-next'
-import Fuse from 'fuse.js'
-import { onClickOutside } from '@vueuse/core'
+import { extractDomain } from '../../utils/url'
+import type { Tool } from '../../types'
 
-const uiStore = useUIStore()
-const authStore = useAuthStore()
-const workspaceStore = useWorkspaceStore()
-const router = useRouter()
+const ui = useUIStore(); const auth = useAuthStore(); const ws = useWorkspaceStore()
+const router = useRouter(); const route = useRoute()
 
-// --- Search Logic ---
-const searchQuery = ref('')
-const isSearchOpen = ref(false)
-const searchResults = ref<any[]>([])
+const titles: Record<string, string> = { '/': '', '/favorites': 'Favorites', '/tasks': 'Tasks', '/settings': 'Settings' }
+const pageTitle = computed(() => titles[route.path] || ws.activeCategory?.name || ws.currentWorkspace?.name || 'ToolHive')
+
+const query = ref(''); const open = ref(false); const mobileSearch = ref(false)
 const searchContainer = ref<HTMLElement | null>(null)
+const mobileInput = ref<HTMLInputElement | null>(null); const deskInput = ref<HTMLInputElement | null>(null)
 
-// Initialize Fuse.js
-let fuse: Fuse<any> | null = null
+// Build the index once per change to the tool list (not a deep watch on every field)
+const fuse = computed(() => new Fuse(ws.allWorkspaceTools, { keys: ['name', 'tags'], threshold: 0.35 }))
+const results = computed(() => (query.value.trim() ? fuse.value.search(query.value.trim()).slice(0, 8) : []))
 
-// Watch the global tools list and update the Fuse index if it changes
-watch(() => workspaceStore.allWorkspaceTools, (newTools) => {
-  fuse = new Fuse(newTools, {
-    keys: ['name', 'url', 'tags'],
-    threshold: 0.3,
-    includeScore: true
-  })
-}, { deep: true, immediate: true })
+onClickOutside(searchContainer, () => { open.value = false })
 
-// Watch search input and filter results
-watch(searchQuery, (query) => {
-  if (!query || !fuse) {
-    searchResults.value = []
-    return
-  }
-  searchResults.value = fuse.search(query).slice(0, 8)
-})
+const clearSearch = () => { query.value = ''; open.value = false }
+const openMobileSearch = async () => { mobileSearch.value = true; await nextTick(); mobileInput.value?.focus() }
+const closeMobileSearch = () => { mobileSearch.value = false; query.value = '' }
+const openResult = (t: Tool) => { ws.trackOpen(t.id); open.value = false; if (mobileSearch.value) closeMobileSearch() }
 
-// Close dropdown if clicked outside
-onClickOutside(searchContainer, () => {
-  isSearchOpen.value = false
-})
-
-const clearSearch = () => {
-  searchQuery.value = ''
-  isSearchOpen.value = false
+const onKey = (e: KeyboardEvent) => {
+  const tag = (e.target as HTMLElement)?.tagName
+  if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') { e.preventDefault(); deskInput.value?.focus() }
 }
+onMounted(() => window.addEventListener('keydown', onKey))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
-// --- Auth ---
-const handleLogout = async () => {
-  await authStore.logout()
-  router.push('/login')
-}
+const handleLogout = async () => { await auth.logout(); ws.reset(); router.push('/login') }
 </script>

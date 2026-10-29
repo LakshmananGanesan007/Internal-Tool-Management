@@ -2,46 +2,26 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useDark, useToggle } from '@vueuse/core'
 
-export interface Toast {
-  id: number
-  message: string
-  type: 'success' | 'error'
-}
+export interface Toast { id: number; message: string; type: 'success' | 'error' | 'info' }
 
 export const useUIStore = defineStore('ui', () => {
   const isEditMode = ref(false)
-  const isSidebarOpen = ref(true)
-  
+  const isSidebarOpen = ref(false) // closed by default so phones never start covered by the drawer
   const isDark = useDark()
   const toggleDark = useToggle(isDark)
 
-  // --- Toast System ---
   const toasts = ref<Toast[]>([])
   let toastId = 0
 
-  function addToast(message: string, type: 'success' | 'error' = 'success') {
+  function addToast(message: string, type: Toast['type'] = 'success') {
     const id = toastId++
-    toasts.value.push({ id, message, type })
-    // Auto-remove after 3.5 seconds
-    setTimeout(() => {
-      toasts.value = toasts.value.filter(t => t.id !== id)
-    }, 3500)
+    toasts.value = [...toasts.value.slice(-3), { id, message, type }]
+    setTimeout(() => removeToast(id), type === 'error' ? 5000 : 3000)
   }
+  function removeToast(id: number) { toasts.value = toasts.value.filter(t => t.id !== id) }
+  function toggleEditMode() { isEditMode.value = !isEditMode.value }
+  function toggleSidebar() { isSidebarOpen.value = !isSidebarOpen.value }
+  function closeSidebar() { isSidebarOpen.value = false }
 
-  function removeToast(id: number) {
-    toasts.value = toasts.value.filter(t => t.id !== id)
-  }
-
-  function toggleEditMode() {
-    isEditMode.value = !isEditMode.value
-  }
-
-  function toggleSidebar() {
-    isSidebarOpen.value = !isSidebarOpen.value
-  }
-
-  return { 
-    isEditMode, isSidebarOpen, isDark, toasts, 
-    toggleDark, toggleEditMode, toggleSidebar, addToast, removeToast 
-  }
+  return { isEditMode, isSidebarOpen, isDark, toasts, toggleDark, toggleEditMode, toggleSidebar, closeSidebar, addToast, removeToast }
 })

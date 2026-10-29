@@ -1,10 +1,30 @@
 @import "tailwindcss";
 
-/* This tells Tailwind v4 to trigger dark mode when the .dark class is present */
+/* Tailwind v4: dark mode when the .dark class is present */
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
   body {
-    @apply antialiased text-gray-900 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300;
+    @apply antialiased text-gray-900 bg-gray-50 dark:bg-gray-950 dark:text-gray-100;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    overscroll-behavior-y: none;
   }
+  /* 16px inputs stop iOS Safari zooming the page on focus */
+  input, select, textarea { font-size: 16px; }
+  @media (min-width: 640px) { input, select, textarea { font-size: 14px; } }
+  button, a, [role="button"] { touch-action: manipulation; }
+  img { -webkit-user-drag: none; }
+}
+
+@utility safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+@utility safe-top { padding-top: env(safe-area-inset-top); }
+@utility h-dvh-screen { height: 100vh; height: 100dvh; }
+@utility touch-none-important { touch-action: none; }
+
+@layer components {
+  .field { @apply block w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500; }
+  .btn-primary { @apply inline-flex items-center justify-center px-5 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors; }
+  .btn-ghost { @apply inline-flex items-center justify-center px-5 py-3 rounded-xl font-bold border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50; }
+  .card { @apply bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm; }
 }
